@@ -17,6 +17,16 @@ Match :: struct {
 matches_found: [49]Match
 match_count: int
 
+clear_board :: proc() {
+	for row in 0 ..< ROWS {
+		for col in 0 ..< COLS {
+			board[row][col] = .Empty
+		}
+	}
+	spawn_piece()
+	fall_timer = 0
+}
+
 matches :: proc(row, col: int, g: Glyph) -> bool {
 	pattern := PATTERNS[g]
 	for dy in 0 ..< 3 {
@@ -43,7 +53,7 @@ scan :: proc(active: []Glyph) {
 	}
 }
 
-clear :: proc() {
+clear_matches :: proc() {
 	for i in 0 ..< match_count {
 		m := matches_found[i]
 		pattern := PATTERNS[m.glyph]
@@ -75,7 +85,7 @@ resolve :: proc() {
 	for _ in 0 ..< 16 {
 		scan({.Cross, .BigO, .Plus, .House})
 		if match_count == 0 do break
-		clear()
+		clear_matches()
 		apply_gravity()
 	}
 }
@@ -139,7 +149,9 @@ hard_drop :: proc() {
 }
 
 update :: proc(dt: f32) {
+	if rl.IsKeyPressed(.Q) do rl.CloseWindow()
 	if rl.IsKeyPressed(.SPACE) do hard_drop()
+	if rl.IsKeyPressed(.R) do clear_board()
 
 	for _ in 0 ..< repeat_steps(&move_left, rl.IsKeyDown(.LEFT) || rl.IsKeyDown(.A), dt) {
 		if piece_col > 0 && board[piece_row][piece_col - 1] == .Empty do piece_col -= 1
