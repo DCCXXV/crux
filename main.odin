@@ -13,22 +13,27 @@ PLAY_W :: (COLS - 1) * PITCH + GLYPH_SIZE
 PLAY_H :: (ROWS - 1) * PITCH + GLYPH_SIZE
 
 CANVAS_W :: PLAY_W + INSET * 2
-CANVAS_H :: PLAY_H + INSET * 2
+BOARD_H :: PLAY_H + INSET * 2
+
+LABEL_H :: GAP + GLYPH_SIZE + GAP
+LABEL_Y :: BOARD_H + GAP
+
+CANVAS_H :: BOARD_H + LABEL_H + BORDER
 WINDOW_W :: CANVAS_W * SCALE
 WINDOW_H :: CANVAS_H * SCALE
 
-draw_cell :: proc(row, col: int, g: Glyph) {
-	if g == .Empty do return
-	pattern := PATTERNS[g]
-	color := COLORS[g]
-	for y in 0 ..< 3 {
-		for x in 0 ..< 3 {
+draw_pattern :: proc(px, py: int, pattern: Pattern, color: rl.Color) {
+	for y in 0 ..< GLYPH_SIZE {
+		for x in 0 ..< GLYPH_SIZE {
 			if !pattern[y][x] do continue
-			px := INSET + col * PITCH + x
-			py := INSET + row * PITCH + y
-			rl.DrawPixel(i32(px), i32(py), color)
+			rl.DrawPixel(i32(px + x), i32(py + y), color)
 		}
 	}
+}
+
+draw_cell :: proc(row, col: int, g: Glyph) {
+	if g == .Empty do return
+	draw_pattern(INSET + col * PITCH, INSET + row * PITCH, PATTERNS[g], COLORS[g])
 }
 
 main :: proc() {
@@ -61,6 +66,11 @@ main :: proc() {
 		rl.ClearBackground(rl.BLACK)
 
 		rl.DrawRectangleLinesEx({0, 0, CANVAS_W, CANVAS_H}, BORDER, rl.WHITE)
+		rl.DrawLine(0, BOARD_H - 1, CANVAS_W, BOARD_H - 1, rl.WHITE)
+
+		for col in 0 ..< COLS {
+			draw_pattern(INSET + col * PITCH, LABEL_Y, DIGITS[col], rl.WHITE)
+		}
 
 		rl.DrawLine(1, 5, CANVAS_W - 1, 5, rl.Color{20, 20, 20, 255})
 

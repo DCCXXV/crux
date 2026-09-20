@@ -54,6 +54,64 @@ PATTERNS := [Glyph]Pattern {
 }
 // odinfmt: enable
 
+// odinfmt: disable
+DIGITS := [COLS]Pattern {
+	parse_pattern({
+		"o o o",
+		"o x o",
+		"o o o",
+	}),
+
+	parse_pattern({
+		"x o o",
+		"o o o",
+		"o o x",
+	}),
+
+	parse_pattern({
+		"o o x",
+		"o x o",
+		"x o o",
+	}),
+
+	parse_pattern({
+		"x o x",
+		"o o o",
+		"x o x",
+	}),
+
+	parse_pattern({
+		"x o x",
+		"o x o",
+		"x o x",
+	}),
+
+	parse_pattern({
+		"x o x",
+		"x o x",
+		"x o x",
+	}),
+
+	parse_pattern({
+		"x o x",
+		"x x x",
+		"x o x",
+	}),
+
+	parse_pattern({
+		"x x x",
+		"x o x",
+		"x x x",
+	}),
+
+	parse_pattern({
+		"x x x",
+		"x x x",
+		"x x x",
+	}),
+}
+// odinfmt: enable
+
 COLORS := [Glyph]rl.Color {
 	.Empty = {0, 0, 0, 255},
 	.Cross = {255, 0, 0, 255},
