@@ -3,7 +3,7 @@ package main
 import "core:math/rand"
 import rl "vendor:raylib"
 
-SCALE :: 7
+SCALE :: 10
 PITCH :: 4
 COLS :: 9
 ROWS :: 10
@@ -255,10 +255,10 @@ main :: proc() {
 		if rl.IsKeyPressed(.SPACE) do hard_drop()
 
 		for _ in 0 ..< repeat_steps(&move_left, rl.IsKeyDown(.LEFT) || rl.IsKeyDown(.A), dt) {
-			if piece_col > 0 do piece_col -= 1
+			if piece_col > 0 && board[piece_row][piece_col - 1] == .Empty do piece_col -= 1
 		}
 		for _ in 0 ..< repeat_steps(&move_right, rl.IsKeyDown(.RIGHT) || rl.IsKeyDown(.D), dt) {
-			if piece_col < COLS - 1 do piece_col += 1
+			if piece_col < COLS - 1 && board[piece_row][piece_col + 1] == .Empty do piece_col += 1
 		}
 		for _ in 0 ..< repeat_steps(&soft_drop, rl.IsKeyDown(.DOWN) || rl.IsKeyDown(.S), dt) {
 			if piece_row + 1 < ROWS && board[piece_row + 1][piece_col] == .Empty {
