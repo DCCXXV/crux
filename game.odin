@@ -17,14 +17,16 @@ Match :: struct {
 matches_found: [49]Match
 match_count: int
 
+game_over: bool
+
 clear_board :: proc() {
 	for row in 0 ..< ROWS {
 		for col in 0 ..< COLS {
 			board[row][col] = .Empty
 		}
 	}
+	game_over = false
 	spawn_piece()
-	fall_timer = 0
 }
 
 matches :: proc(row, col: int, g: Glyph) -> bool {
@@ -101,6 +103,8 @@ piece_glyph: Glyph
 fall_timer: f32
 FALL_INTERVAL :: 0.4
 
+SPAWN_GRACE :: 0.5
+
 DAS_DELAY :: 0.16
 DAS_RATE :: 0.04
 
@@ -136,22 +140,46 @@ spawn_piece :: proc() {
 	piece_col = rand.int_max(COLS)
 	piece_row = 0
 	piece_glyph = random_glyph()
+	fall_timer = -SPAWN_GRACE
 }
 
 hard_drop :: proc() {
+	if board[piece_row][piece_col] != .Empty do return
 	for piece_row + 1 < ROWS && board[piece_row + 1][piece_col] == .Empty {
 		piece_row += 1
 	}
+	lock_piece()
+}
+
+lock_piece :: proc() {
+	if board[piece_row][piece_col] != .Empty {
+		game_over = true
+		return
+	}
 	board[piece_row][piece_col] = piece_glyph
 	resolve()
+
+	for col in 0 ..< COLS {
+		if board[0][col] != .Empty {
+			game_over = true
+			return
+		}
+	}
+
 	spawn_piece()
-	fall_timer = 0
 }
 
 update :: proc(dt: f32) {
 	if rl.IsKeyPressed(.Q) do rl.CloseWindow()
-	if rl.IsKeyPressed(.SPACE) do hard_drop()
+
+	if game_over {
+		if rl.GetKeyPressed() != .KEY_NULL do clear_board()
+		return
+	}
+
 	if rl.IsKeyPressed(.R) do clear_board()
+
+	if rl.IsKeyPressed(.SPACE) do hard_drop()
 
 	for _ in 0 ..< repeat_steps(&move_left, rl.IsKeyDown(.LEFT) || rl.IsKeyDown(.A), dt) {
 		if piece_col > 0 && board[piece_row][piece_col - 1] == .Empty do piece_col -= 1
@@ -168,6 +196,7 @@ update :: proc(dt: f32) {
 
 	for k in 0 ..< COLS {
 		if rl.IsKeyPressed(rl.KeyboardKey(int(rl.KeyboardKey.ONE) + k)) {
+			if board[piece_row][k] != .Empty do continue
 			piece_col = k
 			hard_drop()
 		}
@@ -177,9 +206,7 @@ update :: proc(dt: f32) {
 	if fall_timer >= FALL_INTERVAL {
 		fall_timer = 0
 		if piece_row + 1 >= ROWS || board[piece_row + 1][piece_col] != .Empty {
-			board[piece_row][piece_col] = piece_glyph
-			resolve()
-			spawn_piece()
+			lock_piece()
 		} else {
 			piece_row += 1
 		}

@@ -37,8 +37,7 @@ draw_cell :: proc(row, col: int, g: Glyph) {
 }
 
 main :: proc() {
-
-	rl.InitWindow(WINDOW_W, WINDOW_H, "xolz")
+	rl.InitWindow(WINDOW_W, WINDOW_H, "crux")
 	rl.SetTargetFPS(60)
 
 	canvas := rl.LoadRenderTexture(CANVAS_W, CANVAS_H)
