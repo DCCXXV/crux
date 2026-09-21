@@ -12,12 +12,20 @@ INSET :: BORDER + GAP
 PLAY_W :: (COLS - 1) * PITCH + GLYPH_SIZE
 PLAY_H :: (ROWS - 1) * PITCH + GLYPH_SIZE
 
-CANVAS_W :: PLAY_W + INSET * 2
+BOARD_W :: PLAY_W + INSET * 2
 BOARD_H :: PLAY_H + INSET * 2
 
 LABEL_H :: GAP + GLYPH_SIZE + GAP
 LABEL_Y :: BOARD_H + GAP
 
+DIGIT_GAP :: 1
+SCORE_DIGITS :: 3
+SCORE_W :: SCORE_DIGITS * DIGIT_W + (SCORE_DIGITS - 1) * DIGIT_GAP
+PANEL_W :: INSET + SCORE_W + INSET
+SCORE_X :: BOARD_W + INSET
+SCORE_Y :: INSET
+
+CANVAS_W :: BOARD_W + PANEL_W
 CANVAS_H :: BOARD_H + LABEL_H + BORDER
 WINDOW_W :: CANVAS_W * SCALE
 WINDOW_H :: CANVAS_H * SCALE
@@ -34,6 +42,23 @@ draw_pattern :: proc(px, py: int, pattern: Pattern, color: rl.Color) {
 draw_cell :: proc(row, col: int, g: Glyph) {
 	if g == .Empty do return
 	draw_pattern(INSET + col * PITCH, INSET + row * PITCH, PATTERNS[g], COLORS[g])
+}
+
+draw_digit :: proc(px, py: int, digit: Digit, color: rl.Color) {
+	for y in 0 ..< DIGIT_H {
+		for x in 0 ..< DIGIT_W {
+			if !digit[y][x] do continue
+			rl.DrawPixel(i32(px + x), i32(py + y), color)
+		}
+	}
+}
+
+draw_score :: proc(score: int) {
+	n := score
+	for i := SCORE_DIGITS - 1; i >= 0; i -= 1 {
+		draw_digit(SCORE_X + i * (DIGIT_W + DIGIT_GAP), SCORE_Y, DIGITS[n % 10], rl.WHITE)
+		n /= 10
+	}
 }
 
 main :: proc() {
@@ -64,14 +89,16 @@ main :: proc() {
 		rl.BeginTextureMode(canvas)
 		rl.ClearBackground(rl.BLACK)
 
-		rl.DrawRectangleLinesEx({0, 0, CANVAS_W, CANVAS_H}, BORDER, rl.WHITE)
-		rl.DrawLine(0, BOARD_H - 1, CANVAS_W, BOARD_H - 1, rl.WHITE)
+		rl.DrawRectangleLinesEx({0, 0, BOARD_W, CANVAS_H}, BORDER, rl.WHITE)
+		rl.DrawLine(0, BOARD_H - 1, BOARD_W, BOARD_H - 1, rl.WHITE)
 
 		for col in 0 ..< COLS {
-			draw_pattern(INSET + col * PITCH, LABEL_Y, DIGITS[col], rl.WHITE)
+			draw_pattern(INSET + col * PITCH, LABEL_Y, DICE_DIGITS[col], rl.WHITE)
 		}
 
-		rl.DrawLine(1, 5, CANVAS_W - 1, 5, rl.Color{20, 20, 20, 255})
+		draw_score(current_score)
+
+		rl.DrawLine(1, 5, BOARD_W - 1, 5, rl.Color{20, 20, 20, 255})
 
 		draw_cell(piece_row, piece_col, piece_glyph)
 

@@ -18,6 +18,7 @@ matches_found: [49]Match
 match_count: int
 
 game_over: bool
+current_score: int
 
 clear_board :: proc() {
 	for row in 0 ..< ROWS {
@@ -26,6 +27,7 @@ clear_board :: proc() {
 		}
 	}
 	game_over = false
+	current_score = 0
 	spawn_piece()
 }
 
@@ -83,13 +85,36 @@ apply_gravity :: proc() {
 	}
 }
 
+glyph_size :: proc(g: Glyph) -> int {
+	n := 0
+	for row in PATTERNS[g] {
+		for on in row {
+			if on do n += 1
+		}
+	}
+	return n
+}
+
+score_matches :: proc() -> int {
+	total := 1
+	for i in 0 ..< match_count {
+		total *= glyph_size(matches_found[i].glyph)
+	}
+	return total
+}
+
 resolve :: proc() {
+	combo := 1
+	cleared := false
 	for _ in 0 ..< 16 {
 		scan({.Cross, .BigO, .Plus, .House})
 		if match_count == 0 do break
+		combo *= score_matches()
+		cleared = true
 		clear_matches()
 		apply_gravity()
 	}
+	if cleared do current_score += combo
 }
 
 random_glyph :: proc() -> Glyph {
