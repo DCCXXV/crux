@@ -126,6 +126,8 @@ piece_col: int
 piece_row: int
 piece_glyph: Glyph
 
+next_piece_glyph := Glyph.Empty
+
 fall_timer: f32
 FALL_INTERVAL :: 0.4
 
@@ -165,7 +167,11 @@ soft_drop: Repeater
 spawn_piece :: proc() {
 	piece_col = rand.int_max(COLS)
 	piece_row = 0
-	piece_glyph = random_glyph()
+
+	if (next_piece_glyph == .Empty) do next_piece_glyph = random_glyph()
+	piece_glyph = next_piece_glyph
+	next_piece_glyph = random_glyph()
+
 	fall_timer = -SPAWN_GRACE
 }
 

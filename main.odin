@@ -36,6 +36,14 @@ SCORE_GAP :: 3
 SCORE_X :: HIGHSCORE_X
 SCORE_Y :: HIGHSCORE_BOX_Y + HIGHSCORE_BOX_H + SCORE_GAP
 
+NEXT_PREVIEW_PAD :: 2
+NEXT_PREVIEW_BOX_W :: HIGHSCORE_BOX_W
+NEXT_PREVIEW_BOX_H :: NEXT_PREVIEW_BOX_W
+NEXT_PREVIEW_BOX_X :: HIGHSCORE_BOX_X
+NEXT_PREVIEW_BOX_Y :: SCORE_Y + 18
+NEXT_PREVIEW_X :: NEXT_PREVIEW_BOX_X + NEXT_PREVIEW_PAD
+NEXT_PREVIEW_Y :: NEXT_PREVIEW_BOX_Y + NEXT_PREVIEW_PAD
+
 PANEL_W :: GAP + HIGHSCORE_BOX_W + GAP
 
 CANVAS_W :: BOARD_W + PANEL_W
@@ -63,11 +71,10 @@ save_highscore :: proc(n: int) {
 	_ = os.write_entire_file(highscore_path(), strconv.write_int(buf[:], i64(n), 10))
 }
 
-draw_pattern :: proc(px, py: int, pattern: Pattern, color: rl.Color) {
-	for y in 0 ..< GLYPH_SIZE {
-		for x in 0 ..< GLYPH_SIZE {
-			if !pattern[y][x] do continue
-			rl.DrawPixel(i32(px + x), i32(py + y), color)
+draw_pattern :: proc(px, py: int, pattern: Pattern, color: rl.Color, size: int = 1) {
+	for y in 0 ..< GLYPH_SIZE * size {
+		for x in 0 ..< GLYPH_SIZE * size {
+			if pattern[y / size][x / size] do rl.DrawPixel(i32(px + x), i32(py + y), color)
 		}
 	}
 }
@@ -101,6 +108,15 @@ draw_score :: proc(score: int) {
 draw_highscore :: proc(score: int) {
 	rl.DrawRectangle(HIGHSCORE_BOX_X, HIGHSCORE_BOX_Y, HIGHSCORE_BOX_W, HIGHSCORE_BOX_H, rl.WHITE)
 	draw_digits(HIGHSCORE_X, HIGHSCORE_Y, score, rl.BLACK)
+}
+
+draw_next_preview :: proc() {
+	rl.DrawRectangleLinesEx(
+		{NEXT_PREVIEW_BOX_X, NEXT_PREVIEW_BOX_Y, NEXT_PREVIEW_BOX_W, NEXT_PREVIEW_BOX_H},
+		BORDER,
+		rl.WHITE,
+	)
+	if (next_piece_glyph != .Empty) do draw_pattern(NEXT_PREVIEW_X, NEXT_PREVIEW_Y, PATTERNS[next_piece_glyph], COLORS[next_piece_glyph], 3)
 }
 
 main :: proc() {
@@ -141,6 +157,7 @@ main :: proc() {
 
 		draw_score(current_score)
 		draw_highscore(highscore)
+		draw_next_preview()
 
 		rl.DrawLine(1, 5, BOARD_W - 1, 5, rl.Color{20, 20, 20, 255})
 
