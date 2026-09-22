@@ -120,14 +120,15 @@ draw_next_preview :: proc() {
 }
 
 main :: proc() {
-	rl.InitWindow(WINDOW_W, WINDOW_H, "xolz")
+	rl.SetConfigFlags({.WINDOW_RESIZABLE})
+	rl.InitWindow(WINDOW_W, WINDOW_H, "XOLZ")
+	rl.SetWindowMinSize(CANVAS_W, CANVAS_H)
 	rl.SetTargetFPS(60)
 
 	canvas := rl.LoadRenderTexture(CANVAS_W, CANVAS_H)
 	rl.SetTextureFilter(canvas.texture, .POINT)
 
 	src := rl.Rectangle{0, 0, CANVAS_W, -CANVAS_H}
-	dst := rl.Rectangle{0, 0, WINDOW_W, WINDOW_H}
 
 	highscore = load_highscore()
 	spawn_piece()
@@ -170,6 +171,15 @@ main :: proc() {
 		}
 
 		rl.EndTextureMode()
+
+		screen_w, screen_h := rl.GetScreenWidth(), rl.GetScreenHeight()
+		scale := max(1, min(screen_w / CANVAS_W, screen_h / CANVAS_H))
+		dst := rl.Rectangle {
+			f32((screen_w - CANVAS_W * scale) / 2),
+			f32((screen_h - CANVAS_H * scale) / 2),
+			f32(CANVAS_W * scale),
+			f32(CANVAS_H * scale),
+		}
 
 		rl.BeginDrawing()
 		rl.ClearBackground(rl.BLACK)
