@@ -19,6 +19,7 @@ match_count: int
 
 game_over: bool
 current_score: int
+highscore: int
 
 clear_board :: proc() {
 	for row in 0 ..< ROWS {
@@ -198,6 +199,10 @@ update :: proc(dt: f32) {
 	if rl.IsKeyPressed(.Q) do rl.CloseWindow()
 
 	if game_over {
+		if current_score > highscore {
+			highscore = current_score
+			save_highscore(highscore)
+		}
 		if rl.GetKeyPressed() != .KEY_NULL do clear_board()
 		return
 	}

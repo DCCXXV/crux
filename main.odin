@@ -1,5 +1,7 @@
 package main
 
+import "core:os"
+import "core:strconv"
 import rl "vendor:raylib"
 
 SCALE :: 10
@@ -21,14 +23,45 @@ LABEL_Y :: BOARD_H + GAP
 DIGIT_GAP :: 1
 SCORE_DIGITS :: 3
 SCORE_W :: SCORE_DIGITS * DIGIT_W + (SCORE_DIGITS - 1) * DIGIT_GAP
-PANEL_W :: INSET + SCORE_W + INSET
-SCORE_X :: BOARD_W + INSET
-SCORE_Y :: INSET
+
+HIGHSCORE_PAD :: 1
+HIGHSCORE_BOX_W :: SCORE_W + HIGHSCORE_PAD * 2
+HIGHSCORE_BOX_H :: DIGIT_H + HIGHSCORE_PAD * 2
+HIGHSCORE_BOX_X :: BOARD_W + GAP
+HIGHSCORE_BOX_Y :: GAP
+HIGHSCORE_X :: HIGHSCORE_BOX_X + HIGHSCORE_PAD
+HIGHSCORE_Y :: HIGHSCORE_BOX_Y + HIGHSCORE_PAD
+
+SCORE_GAP :: 3
+SCORE_X :: HIGHSCORE_X
+SCORE_Y :: HIGHSCORE_BOX_Y + HIGHSCORE_BOX_H + SCORE_GAP
+
+PANEL_W :: GAP + HIGHSCORE_BOX_W + GAP
 
 CANVAS_W :: BOARD_W + PANEL_W
 CANVAS_H :: BOARD_H + LABEL_H + BORDER
 WINDOW_W :: CANVAS_W * SCALE
 WINDOW_H :: CANVAS_H * SCALE
+
+highscore_path :: proc() -> string {
+	dir, _ := os.user_data_dir(context.temp_allocator)
+	dir, _ = os.join_path({dir, "xolz"}, context.temp_allocator)
+	os.make_directory_all(dir)
+	path, _ := os.join_path({dir, "highscore"}, context.temp_allocator)
+	return path
+}
+
+load_highscore :: proc() -> int {
+	data, err := os.read_entire_file(highscore_path(), context.temp_allocator)
+	if err != nil do return 0
+	n, _ := strconv.parse_int(string(data))
+	return n
+}
+
+save_highscore :: proc(n: int) {
+	buf: [32]u8
+	_ = os.write_entire_file(highscore_path(), strconv.write_int(buf[:], i64(n), 10))
+}
 
 draw_pattern :: proc(px, py: int, pattern: Pattern, color: rl.Color) {
 	for y in 0 ..< GLYPH_SIZE {
@@ -53,16 +86,25 @@ draw_digit :: proc(px, py: int, digit: Digit, color: rl.Color) {
 	}
 }
 
-draw_score :: proc(score: int) {
-	n := score
+draw_digits :: proc(px, py: int, value: int, color: rl.Color) {
+	n := value
 	for i := SCORE_DIGITS - 1; i >= 0; i -= 1 {
-		draw_digit(SCORE_X + i * (DIGIT_W + DIGIT_GAP), SCORE_Y, DIGITS[n % 10], rl.WHITE)
+		draw_digit(px + i * (DIGIT_W + DIGIT_GAP), py, DIGITS[n % 10], color)
 		n /= 10
 	}
 }
 
+draw_score :: proc(score: int) {
+	draw_digits(SCORE_X, SCORE_Y, score, rl.WHITE)
+}
+
+draw_highscore :: proc(score: int) {
+	rl.DrawRectangle(HIGHSCORE_BOX_X, HIGHSCORE_BOX_Y, HIGHSCORE_BOX_W, HIGHSCORE_BOX_H, rl.WHITE)
+	draw_digits(HIGHSCORE_X, HIGHSCORE_Y, score, rl.BLACK)
+}
+
 main :: proc() {
-	rl.InitWindow(WINDOW_W, WINDOW_H, "crux")
+	rl.InitWindow(WINDOW_W, WINDOW_H, "xolz")
 	rl.SetTargetFPS(60)
 
 	canvas := rl.LoadRenderTexture(CANVAS_W, CANVAS_H)
@@ -71,6 +113,7 @@ main :: proc() {
 	src := rl.Rectangle{0, 0, CANVAS_W, -CANVAS_H}
 	dst := rl.Rectangle{0, 0, WINDOW_W, WINDOW_H}
 
+	highscore = load_highscore()
 	spawn_piece()
 	for !rl.WindowShouldClose() {
 		/*
@@ -97,6 +140,7 @@ main :: proc() {
 		}
 
 		draw_score(current_score)
+		draw_highscore(highscore)
 
 		rl.DrawLine(1, 5, BOARD_W - 1, 5, rl.Color{20, 20, 20, 255})
 
