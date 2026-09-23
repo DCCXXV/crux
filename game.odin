@@ -70,6 +70,7 @@ clear_matches :: proc() {
 			}
 		}
 	}
+	if match_count > 0 do play_break_sound()
 	match_count = 0
 }
 
@@ -188,11 +189,14 @@ lock_piece :: proc() {
 		game_over = true
 		return
 	}
+
+	if piece_row > 0 do play_place_sound(piece_col)
 	board[piece_row][piece_col] = piece_glyph
 	resolve()
 
 	for col in 0 ..< COLS {
 		if board[0][col] != .Empty {
+			play_game_over_sound()
 			game_over = true
 			return
 		}

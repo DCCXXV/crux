@@ -122,8 +122,21 @@ draw_next_preview :: proc() {
 main :: proc() {
 	rl.SetConfigFlags({.WINDOW_RESIZABLE})
 	rl.InitWindow(WINDOW_W, WINDOW_H, "XOLZ")
+	rl.InitAudioDevice()
 	rl.SetWindowMinSize(CANVAS_W, CANVAS_H)
 	rl.SetTargetFPS(60)
+
+	place_wave := rl.LoadWaveFromMemory(".wav", raw_data(PLACE_WAV), i32(len(PLACE_WAV)))
+	place_sfx = rl.LoadSoundFromWave(place_wave)
+	break_wave := rl.LoadWaveFromMemory(".wav", raw_data(BREAK_WAV), i32(len(BREAK_WAV)))
+	break_sfx = rl.LoadSoundFromWave(break_wave)
+	game_over_wave := rl.LoadWaveFromMemory(
+		".wav",
+		raw_data(GAME_OVER_WAV),
+		i32(len(GAME_OVER_WAV)),
+	)
+	game_over_sfx = rl.LoadSoundFromWave(game_over_wave)
+
 
 	canvas := rl.LoadRenderTexture(CANVAS_W, CANVAS_H)
 	rl.SetTextureFilter(canvas.texture, .POINT)
@@ -187,6 +200,10 @@ main :: proc() {
 		rl.EndDrawing()
 	}
 
+	rl.UnloadWave(place_wave)
+	rl.UnloadWave(break_wave)
+	rl.UnloadWave(game_over_wave)
+	rl.CloseAudioDevice()
 	rl.UnloadRenderTexture(canvas)
 	rl.CloseWindow()
 }
