@@ -52,7 +52,16 @@ WINDOW_W :: CANVAS_W * SCALE
 WINDOW_H :: CANVAS_H * SCALE
 
 highscore_path :: proc() -> string {
-	dir, _ := os.user_data_dir(context.temp_allocator)
+	dir: string
+	when ODIN_OS == .Windows {
+		dir = os.get_env("APPDATA", context.temp_allocator)
+	} else {
+		dir = os.get_env("XDG_DATA_HOME", context.temp_allocator)
+		if dir == "" {
+			home := os.get_env("HOME", context.temp_allocator)
+			dir, _ = os.join_path({home, ".local", "share"}, context.temp_allocator)
+		}
+	}
 	dir, _ = os.join_path({dir, "xolz"}, context.temp_allocator)
 	os.make_directory_all(dir)
 	path, _ := os.join_path({dir, "highscore"}, context.temp_allocator)
@@ -125,6 +134,8 @@ main :: proc() {
 	rl.InitAudioDevice()
 	rl.SetWindowMinSize(CANVAS_W, CANVAS_H)
 	rl.SetTargetFPS(60)
+	rl.SetMasterVolume(0.8)
+	rl.SetExitKey(.KEY_NULL)
 
 	place_wave := rl.LoadWaveFromMemory(".wav", raw_data(PLACE_WAV), i32(len(PLACE_WAV)))
 	place_sfx = rl.LoadSoundFromWave(place_wave)
@@ -136,7 +147,6 @@ main :: proc() {
 		i32(len(GAME_OVER_WAV)),
 	)
 	game_over_sfx = rl.LoadSoundFromWave(game_over_wave)
-
 
 	canvas := rl.LoadRenderTexture(CANVAS_W, CANVAS_H)
 	rl.SetTextureFilter(canvas.texture, .POINT)

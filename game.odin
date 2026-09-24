@@ -205,9 +205,9 @@ lock_piece :: proc() {
 	spawn_piece()
 }
 
-update :: proc(dt: f32) {
-	if rl.IsKeyPressed(.Q) do rl.CloseWindow()
+paused: bool
 
+update :: proc(dt: f32) {
 	if game_over {
 		if current_score > highscore {
 			highscore = current_score
@@ -217,7 +217,28 @@ update :: proc(dt: f32) {
 		return
 	}
 
+	if rl.IsKeyPressed(.M) {
+		if rl.GetMasterVolume() == 0 {
+			rl.SetMasterVolume(0.8)
+		} else {
+			rl.SetMasterVolume(0)
+		}
+	}
+
+	/*
+	if rl.IsKeyPressed(.P) {
+		paused = !paused
+		if !paused {
+			move_left = {}
+			move_right = {}
+			soft_drop = {}
+		}	
+	}
+	*/
+
 	if rl.IsKeyPressed(.R) do clear_board()
+
+	if paused do return
 
 	if rl.IsKeyPressed(.SPACE) do hard_drop()
 
