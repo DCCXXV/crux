@@ -1,0 +1,17 @@
+name: windows-build
+on: [push, workflow_dispatch]
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: laytan/setup-odin@v2
+        with:
+          release: latest
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - run: odin build . -out:xolz.exe -o:speed -subsystem:windows
+      - uses: actions/upload-artifact@v7
+        with:
+          name: xolz-windows
+          path: xolz.exe
