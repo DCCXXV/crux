@@ -20,6 +20,8 @@ BOARD_H :: PLAY_H + INSET * 2
 LABEL_H :: GAP + GLYPH_SIZE + GAP
 LABEL_Y :: BOARD_H + GAP
 
+DIGIT_W :: 3
+DIGIT_H :: FONT_CAP_H
 DIGIT_GAP :: 1
 SCORE_DIGITS :: 3
 SCORE_W :: SCORE_DIGITS * DIGIT_W + (SCORE_DIGITS - 1) * DIGIT_GAP
@@ -48,8 +50,14 @@ PANEL_W :: GAP + HIGHSCORE_BOX_W + GAP
 
 CANVAS_W :: BOARD_W + PANEL_W
 CANVAS_H :: BOARD_H + LABEL_H + BORDER
-WINDOW_W :: CANVAS_W * SCALE
-WINDOW_H :: CANVAS_H * SCALE
+
+SCREEN_W :: 80
+SCREEN_H :: 60
+CANVAS_X :: (SCREEN_W - CANVAS_W) / 2
+CANVAS_Y :: (SCREEN_H - CANVAS_H) / 2
+
+WINDOW_W :: SCREEN_W * SCALE
+WINDOW_H :: SCREEN_H * SCALE
 
 highscore_path :: proc() -> string {
 	dir: string
@@ -93,19 +101,15 @@ draw_cell :: proc(row, col: int, g: Glyph) {
 	draw_pattern(INSET + col * PITCH, INSET + row * PITCH, PATTERNS[g], COLORS[g])
 }
 
-draw_digit :: proc(px, py: int, digit: Digit, color: rl.Color) {
-	for y in 0 ..< DIGIT_H {
-		for x in 0 ..< DIGIT_W {
-			if !digit[y][x] do continue
-			rl.DrawPixel(i32(px + x), i32(py + y), color)
-		}
-	}
+draw_digit :: proc(px, py: int, digit: int, color: rl.Color) {
+	pos := rl.Vector2{f32(px), f32(py - FONT_CAP_TOP)}
+	rl.DrawTextCodepoint(font, '0' + rune(digit), pos, FONT_SIZE, color)
 }
 
 draw_digits :: proc(px, py: int, value: int, color: rl.Color) {
 	n := value
 	for i := SCORE_DIGITS - 1; i >= 0; i -= 1 {
-		draw_digit(px + i * (DIGIT_W + DIGIT_GAP), py, DIGITS[n % 10], color)
+		draw_digit(px + i * (DIGIT_W + DIGIT_GAP), py, n % 10, color)
 		n /= 10
 	}
 }
@@ -132,7 +136,7 @@ main :: proc() {
 	rl.SetConfigFlags({.WINDOW_RESIZABLE})
 	rl.InitWindow(WINDOW_W, WINDOW_H, "XOLZ")
 	rl.InitAudioDevice()
-	rl.SetWindowMinSize(CANVAS_W, CANVAS_H)
+	rl.SetWindowMinSize(SCREEN_W, SCREEN_H)
 	rl.SetTargetFPS(60)
 	rl.SetMasterVolume(0.8)
 	rl.SetExitKey(.KEY_NULL)
@@ -148,65 +152,63 @@ main :: proc() {
 	)
 	game_over_sfx = rl.LoadSoundFromWave(game_over_wave)
 
+	load_font()
+
 	canvas := rl.LoadRenderTexture(CANVAS_W, CANVAS_H)
 	rl.SetTextureFilter(canvas.texture, .POINT)
+	screen := rl.LoadRenderTexture(SCREEN_W, SCREEN_H)
+	rl.SetTextureFilter(screen.texture, .POINT)
 
-	src := rl.Rectangle{0, 0, CANVAS_W, -CANVAS_H}
+	canvas_src := rl.Rectangle{0, 0, CANVAS_W, -CANVAS_H}
+	screen_src := rl.Rectangle{0, 0, SCREEN_W, -SCREEN_H}
 
 	highscore = load_highscore()
-	spawn_piece()
 	for !rl.WindowShouldClose() {
-		/*
-		if rl.IsMouseButtonPressed(.LEFT) {
-			mx := (int(rl.GetMouseX()) / SCALE - INSET) / PITCH
-			my := (int(rl.GetMouseY()) / SCALE - INSET) / PITCH
-			if mx >= 0 && mx < COLS && my >= 0 && my < ROWS {
-				g := board[my][mx]
-				board[my][mx] = Glyph((int(g) + 1) % len(Glyph))
-			}
-		}
-		*/
-
-		update(rl.GetFrameTime())
-
-		rl.BeginTextureMode(canvas)
-		rl.ClearBackground(rl.BLACK)
-
-		rl.DrawRectangleLinesEx({0, 0, BOARD_W, CANVAS_H}, BORDER, rl.WHITE)
-		rl.DrawLine(0, BOARD_H - 1, BOARD_W, BOARD_H - 1, rl.WHITE)
-
-		for col in 0 ..< COLS {
-			draw_pattern(INSET + col * PITCH, LABEL_Y, DICE_DIGITS[col], rl.WHITE)
-		}
-
-		draw_score(current_score)
-		draw_highscore(highscore)
-		draw_next_preview()
-
-		rl.DrawLine(1, 5, BOARD_W - 1, 5, rl.Color{20, 20, 20, 255})
-
-		draw_cell(piece_row, piece_col, piece_glyph)
-
-		for row in 0 ..< ROWS {
-			for col in 0 ..< COLS {
-				draw_cell(row, col, board[row][col])
-			}
-		}
-
-		rl.EndTextureMode()
-
 		screen_w, screen_h := rl.GetScreenWidth(), rl.GetScreenHeight()
-		scale := max(1, min(screen_w / CANVAS_W, screen_h / CANVAS_H))
+		scale := max(1, min(screen_w / SCREEN_W, screen_h / SCREEN_H))
 		dst := rl.Rectangle {
-			f32((screen_w - CANVAS_W * scale) / 2),
-			f32((screen_h - CANVAS_H * scale) / 2),
-			f32(CANVAS_W * scale),
-			f32(CANVAS_H * scale),
+			f32((screen_w - SCREEN_W * scale) / 2),
+			f32((screen_h - SCREEN_H * scale) / 2),
+			f32(SCREEN_W * scale),
+			f32(SCREEN_H * scale),
+		}
+		mouse := (rl.GetMousePosition() - {dst.x, dst.y}) / f32(scale)
+
+		if scene != .Menu && rl.IsKeyPressed(.ESCAPE) do scene = .Menu
+
+		if scene == .Menu {
+			update_menu(mouse)
+			rl.BeginTextureMode(screen)
+			rl.ClearBackground(rl.BLACK)
+			draw_menu()
+			rl.EndTextureMode()
+		} else if scene == .Settings {
+			rl.BeginTextureMode(screen)
+			rl.ClearBackground(rl.BLACK)
+			rl.EndTextureMode()
+		} else {
+			/*
+			if rl.IsMouseButtonPressed(.LEFT) {
+				mx := (int(mouse.x) - CANVAS_X - INSET) / PITCH
+				my := (int(mouse.y) - CANVAS_Y - INSET) / PITCH
+				if mx >= 0 && mx < COLS && my >= 0 && my < ROWS {
+					g := board[my][mx]
+					board[my][mx] = Glyph((int(g) + 1) % len(Glyph))
+				}
+			}
+			*/
+
+			update(rl.GetFrameTime())
+			draw_game(canvas)
+			rl.BeginTextureMode(screen)
+			rl.ClearBackground(rl.BLACK)
+			rl.DrawTextureRec(canvas.texture, canvas_src, {CANVAS_X, CANVAS_Y}, rl.WHITE)
+			rl.EndTextureMode()
 		}
 
 		rl.BeginDrawing()
 		rl.ClearBackground(rl.BLACK)
-		rl.DrawTexturePro(canvas.texture, src, dst, {0, 0}, 0, rl.WHITE)
+		rl.DrawTexturePro(screen.texture, screen_src, dst, {0, 0}, 0, rl.WHITE)
 		rl.EndDrawing()
 	}
 
@@ -214,6 +216,36 @@ main :: proc() {
 	rl.UnloadWave(break_wave)
 	rl.UnloadWave(game_over_wave)
 	rl.CloseAudioDevice()
+	rl.UnloadFont(font)
 	rl.UnloadRenderTexture(canvas)
+	rl.UnloadRenderTexture(screen)
 	rl.CloseWindow()
+}
+
+draw_game :: proc(canvas: rl.RenderTexture2D) {
+	rl.BeginTextureMode(canvas)
+	rl.ClearBackground(rl.BLACK)
+
+	rl.DrawRectangleLinesEx({0, 0, BOARD_W, CANVAS_H}, BORDER, rl.WHITE)
+	rl.DrawLine(0, BOARD_H - 1, BOARD_W, BOARD_H - 1, rl.WHITE)
+
+	for col in 0 ..< COLS {
+		draw_pattern(INSET + col * PITCH, LABEL_Y, DICE_DIGITS[col], rl.WHITE)
+	}
+
+	draw_score(current_score)
+	draw_highscore(highscore)
+	draw_next_preview()
+
+	rl.DrawLine(1, 5, BOARD_W - 1, 5, rl.Color{20, 20, 20, 255})
+
+	draw_cell(piece_row, piece_col, piece_glyph)
+
+	for row in 0 ..< ROWS {
+		for col in 0 ..< COLS {
+			draw_cell(row, col, board[row][col])
+		}
+	}
+
+	rl.EndTextureMode()
 }
