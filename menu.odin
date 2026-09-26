@@ -26,7 +26,33 @@ BUTTON_PAD :: 1
 BUTTON_H :: (BORDER + BUTTON_PAD) * 2 + FONT_CAP_H
 BUTTON_GAP :: 3
 BUTTONS_H :: len(Menu_Item) * BUTTON_H + (len(Menu_Item) - 1) * BUTTON_GAP
-BUTTONS_Y :: (SCREEN_H - BUTTONS_H) / 2
+
+LOGO_GLYPHS := [2][2]Glyph{{.Cross, .House}, {.Plus, .BigO}}
+
+LOGO_GLYPH_SIZE :: (GLYPH_SIZE - 1) * PITCH + GLYPH_SIZE
+LOGO_GAP :: 3
+LOGO_SIZE :: len(LOGO_GLYPHS) * LOGO_GLYPH_SIZE + (len(LOGO_GLYPHS) - 1) * LOGO_GAP
+LOGO_BUTTONS_GAP :: 5
+
+MENU_H :: LOGO_SIZE + LOGO_BUTTONS_GAP + BUTTONS_H
+LOGO_X :: (SCREEN_W - LOGO_SIZE) / 2
+LOGO_Y :: (SCREEN_H - MENU_H) / 2
+BUTTONS_Y :: LOGO_Y + LOGO_SIZE + LOGO_BUTTONS_GAP
+
+draw_logo :: proc(px, py: int) {
+	for row, y in LOGO_GLYPHS {
+		for g, x in row {
+			gx := px + x * (LOGO_GLYPH_SIZE + LOGO_GAP)
+			gy := py + y * (LOGO_GLYPH_SIZE + LOGO_GAP)
+			for cy in 0 ..< GLYPH_SIZE {
+				for cx in 0 ..< GLYPH_SIZE {
+					if !PATTERNS[g][cy][cx] do continue
+					draw_pattern(gx + cx * PITCH, gy + cy * PITCH, PATTERNS[g], COLORS[g])
+				}
+			}
+		}
+	}
+}
 
 text_width :: proc(text: cstring) -> int {
 	w := 0
@@ -85,6 +111,8 @@ update_menu :: proc(mouse: rl.Vector2) {
 }
 
 draw_menu :: proc() {
+	draw_logo(LOGO_X, LOGO_Y)
+
 	for item in Menu_Item {
 		rect := button_rect(item)
 		fg, bg := rl.WHITE, rl.BLACK

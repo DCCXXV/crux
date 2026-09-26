@@ -51,8 +51,8 @@ PANEL_W :: GAP + HIGHSCORE_BOX_W + GAP
 CANVAS_W :: BOARD_W + PANEL_W
 CANVAS_H :: BOARD_H + LABEL_H + BORDER
 
-SCREEN_W :: 80
-SCREEN_H :: 60
+SCREEN_W :: 90
+SCREEN_H :: 70
 CANVAS_X :: (SCREEN_W - CANVAS_W) / 2
 CANVAS_Y :: (SCREEN_H - CANVAS_H) / 2
 
@@ -230,7 +230,8 @@ draw_game :: proc(canvas: rl.RenderTexture2D) {
 	rl.DrawLine(0, BOARD_H - 1, BOARD_W, BOARD_H - 1, rl.WHITE)
 
 	for col in 0 ..< COLS {
-		draw_pattern(INSET + col * PITCH, LABEL_Y, DICE_DIGITS[col], rl.WHITE)
+		color := COLORS[piece_glyph] if col == piece_col else rl.WHITE
+		draw_pattern(INSET + col * PITCH, LABEL_Y, DICE_DIGITS[col], color)
 	}
 
 	draw_score(current_score)
